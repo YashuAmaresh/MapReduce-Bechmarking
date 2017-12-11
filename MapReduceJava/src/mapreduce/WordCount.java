@@ -21,21 +21,32 @@ public class WordCount {
 		Configuration c = new Configuration();
 		String[] files = new GenericOptionsParser(c, args).getRemainingArgs();
 		Path input = new Path(files[0]);
-		Path output = new Path(files[1]);
-		Job j = new Job(c, "wordcount");
-		j.setJarByClass(WordCount.class);
-		j.setMapperClass(MapForWordCount.class);
-		j.setReducerClass(ReduceForWordCount.class);
-		j.setOutputKeyClass(Text.class);
-		j.setOutputValueClass(IntWritable.class);
-		FileInputFormat.addInputPath(j, input);
-		FileOutputFormat.setOutputPath(j, output);
-		System.out.println("Reduce Tasks: " + j.getNumReduceTasks());
-		long start = System.nanoTime();
-		boolean res = j.waitForCompletion(true);
-		long end = System.nanoTime();
-		System.out.println("Time Taken: " + (end - start));
-		System.exit(res ? 0 : 1);
+		double execTimes[] = new double[5];
+		for(int i = 0; i < 5; ++i) {
+			Path output = new Path(files[1] + i);
+			Job j = new Job(c, "wordcount");
+			j.setJarByClass(WordCount.class);
+			j.setMapperClass(MapForWordCount.class);
+			j.setReducerClass(ReduceForWordCount.class);
+			j.setOutputKeyClass(Text.class);
+			j.setOutputValueClass(IntWritable.class);
+			j.setNumReduceTasks(15);
+			FileInputFormat.addInputPath(j, input);
+			FileOutputFormat.setOutputPath(j, output);
+			long start = System.nanoTime();
+			boolean res = j.waitForCompletion(true);
+			long end = System.nanoTime();
+			execTimes[i] = (double)(end - start)/1000000000;
+			System.out.println("Reduce Tasks: " + j.getNumReduceTasks());
+			System.out.println("Time Taken: " + (end - start) + ":" + execTimes[i]);
+		}
+		
+		double sum = 0;
+		for(int i = 0; i < execTimes.length; ++i) {
+			sum += execTimes[i];
+		}
+		System.out.println("Average time taken: " + sum / 5);
+		System.exit(0);
 	}
 
 	public static class MapForWordCount extends Mapper<LongWritable, Text, Text, IntWritable> {
